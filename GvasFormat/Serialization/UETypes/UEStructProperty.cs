@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace GvasFormat.Serialization.UETypes
 {
-    public abstract class UEStructProperty : UEProperty
+    public class UEStructProperty : UEProperty
     {
         public UEStructProperty() { }
 
@@ -74,6 +75,7 @@ namespace GvasFormat.Serialization.UETypes
         public override void Serialize(BinaryWriter writer) { throw new NotImplementedException(); }
 
         public string StructType;
+        public List<UEProperty> Properties = new List<UEProperty>();
         //public Guid Unknown = Guid.Empty;
     }
 }

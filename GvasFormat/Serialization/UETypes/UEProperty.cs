@@ -12,7 +12,7 @@ namespace GvasFormat.Serialization.UETypes
 
         public static UEProperty Read(BinaryReader reader)
         {
-            if (reader.PeekChar() < 0)
+            if (reader.PeekChar() <= 0)
                 return null;
 
             var name = reader.ReadUEString();

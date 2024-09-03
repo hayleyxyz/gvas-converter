@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using GvasFormat;
@@ -9,37 +10,106 @@ namespace GvasConverter
 {
     class Program
     {
+        enum Operation
+        {
+            Encode,
+            Decode
+        }
+
+        static void Help()
+        {
+            var executableName = Path.GetFileName(Process.GetCurrentProcess().MainModule.FileName);
+            Console.WriteLine($"Usage: {executableName} [-d --decode | -e --encode] <input file> [output file]");
+        }
+
         static void Main(string[] args)
         {
-            if (args.Length != 1)
+            Operation operation;
+
+            if (args.Length < 2)
             {
-                Console.WriteLine("Usage:");
-                Console.WriteLine("  gvas-converter path_to_save_file|path_to_json");
+                Help();
                 return;
             }
-
-            var ext = Path.GetExtension(args[0]).ToLower();
-            if (ext == ".json")
+            else if (args[0] == "-d" || args[0] == "--decode")
             {
-                Console.WriteLine("Not implemented atm");
+                operation = Operation.Decode;
+            }
+            else if (args[0] == "-e" || args[0] == "--encode")
+            {
+                operation = Operation.Encode;
             }
             else
             {
-                Console.WriteLine("Parsing UE4 save file structure...");
-                Gvas save;
-                using (var stream = File.Open(args[0], FileMode.Open, FileAccess.Read, FileShare.Read))
-                    save = UESerializer.Read(stream);
-
-                Console.WriteLine("Converting to json...");
-                var json = JsonConvert.SerializeObject(save, new JsonSerializerSettings{Formatting = Formatting.Indented});
-
-                Console.WriteLine("Saving json...");
-                using (var stream = File.Open(args[0] + ".json", FileMode.Create, FileAccess.Write, FileShare.Read))
-                using (var writer = new StreamWriter(stream, new UTF8Encoding(false)))
-                    writer.Write(json);
+                Help();
+                return;
             }
-            Console.WriteLine("Done.");
-            Console.ReadKey(true);
+
+            if (operation == Operation.Decode)
+            {
+                DecodeSaveFile(args);
+            }
+            else
+            {
+                EncodeSaveFile(args);
+            }
+        }
+
+        private static void EncodeSaveFile(string[] args)
+        {
+            var inputFilePath = args[1];
+
+            Gvas save;
+            using (var stream = File.Open(inputFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                // Read the json file
+                using (var reader = new StreamReader(stream, new UTF8Encoding(false)))
+                {
+                    var serializerSettings = new JsonSerializerSettings
+                    {
+                        Converters =
+                        [
+                            new UEPropertyJsonConverter()
+                        ]
+                    };
+
+                    var json = reader.ReadToEnd();
+                    save = JsonConvert.DeserializeObject<Gvas>(json, serializerSettings);
+                }
+            }
+        }
+
+        private static void DecodeSaveFile(string[] args)
+        {
+            var inputFilePath = args[1];
+
+            Gvas save;
+            using (var stream = File.Open(inputFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                save = UESerializer.Read(stream);
+            }
+
+            Console.WriteLine("Converting to json");
+            var serializerSettings = new JsonSerializerSettings
+            {
+                Formatting = Formatting.Indented,
+                Converters =
+                {
+                    new ByteArrayConverter()
+                }
+            };
+
+            var json = JsonConvert.SerializeObject(save, serializerSettings);
+
+            var outputFilePath = args.Length > 2 ? args[2] : args[1] + ".json";
+
+            using (var stream = File.Open(outputFilePath, FileMode.Create, FileAccess.Write, FileShare.Read))
+            {
+                using (var writer = new StreamWriter(stream, new UTF8Encoding(false)))
+                {
+                    writer.Write(json);
+                }
+            }
         }
     }
 }

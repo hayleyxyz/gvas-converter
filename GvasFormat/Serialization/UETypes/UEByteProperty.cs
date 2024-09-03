@@ -21,18 +21,18 @@ namespace GvasFormat.Serialization.UETypes
             // valueLength starts here
             var arrayLength = reader.ReadInt32();
             var bytes = reader.ReadBytes(arrayLength);
-            return new UEByteProperty {Value = bytes.AsHex()};
+            return new UEByteProperty {Value = bytes};
         }
 
         public static UEProperty[] Read(BinaryReader reader, long valueLength, int count)
         {
             // valueLength starts here
             var bytes = reader.ReadBytes(count);
-            return new UEProperty[]{ new UEByteProperty {Value = bytes.AsHex()}};
+            return new UEProperty[]{ new UEByteProperty {Value = bytes}};
         }
 
         public override void Serialize(BinaryWriter writer) => throw new NotImplementedException();
 
-        public string Value;
+        public byte[] Value;
     }
 }
